@@ -67,10 +67,10 @@ async function start() {
       await analyticsRoutes(instance, analyticsService);
     });
 
-    fastify.get('/alerts/stream', { websocket: true }, (connection, _req) => {
+    fastify.get('/alerts/stream', { websocket: true }, (connection: any, _req: any) => {
       logger.info('WebSocket client connected');
 
-      connection.socket.on('message', (message) => {
+      connection.socket.on('message', (message: any) => {
         logger.debug('WebSocket message received:', message.toString());
       });
 

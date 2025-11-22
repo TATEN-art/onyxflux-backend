@@ -185,7 +185,7 @@ export class AnalyticsService {
       },
     });
 
-    return users.reduce((sum, user) => sum + user.novaRequestCount, 0);
+    return users.reduce((sum: number, user: { novaRequestCount: number }) => sum + user.novaRequestCount, 0);
   }
 
   private async getWhaleEvents24h(): Promise<number> {

@@ -226,7 +226,7 @@ export class WhalesService {
         amountUsd: data.amountUsd,
         type: data.type,
         txHash: data.txHash,
-        metadata: data.metadata as Record<string, unknown>,
+        metadata: data.metadata as any,
       },
     });
   }

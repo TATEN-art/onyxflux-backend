@@ -171,7 +171,7 @@ export class LiquidityService {
         liquidityUsd: data.liquidityUsd,
         volume24h: data.volume24h,
         healthScore: data.healthScore,
-        metadata: data.metadata as Record<string, unknown>,
+        metadata: data.metadata as any,
       },
     });
   }

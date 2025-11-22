@@ -107,7 +107,7 @@ export class WebhooksService {
       await prisma.webhookDelivery.create({
         data: {
           webhookId,
-          payload: { event, data: payload },
+          payload: { event, data: payload } as any,
           status: response.status,
           response: response.data ? JSON.stringify(response.data) : null,
         },
@@ -120,7 +120,7 @@ export class WebhooksService {
       await prisma.webhookDelivery.create({
         data: {
           webhookId,
-          payload: { event, data: payload },
+          payload: { event, data: payload } as any,
           status: error.response?.status || 0,
           response: error.message,
         },

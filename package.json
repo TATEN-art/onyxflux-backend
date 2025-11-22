@@ -15,7 +15,14 @@
     "typecheck": "tsc --noEmit",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["web3", "api", "blockchain", "crypto", "ai", "nova"],
+  "keywords": [
+    "web3",
+    "api",
+    "blockchain",
+    "crypto",
+    "ai",
+    "nova"
+  ],
   "author": "OnyxFlux",
   "license": "MIT",
   "description": "OnyxFlux - Multi-chain Web3 API platform with integrated AI intelligence",
@@ -24,7 +31,7 @@
     "@fastify/jwt": "^10.0.0",
     "@fastify/rate-limit": "^10.3.0",
     "@fastify/websocket": "^11.2.0",
-    "@prisma/client": "^7.0.0",
+    "@prisma/client": "^6.8.0",
     "axios": "^1.13.2",
     "bcrypt": "^6.0.0",
     "dotenv": "^17.2.3",
@@ -43,7 +50,7 @@
     "@typescript-eslint/parser": "^8.47.0",
     "eslint": "^9.39.1",
     "nodemon": "^3.1.11",
-    "prisma": "^7.0.0",
+    "prisma": "^6.8.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"

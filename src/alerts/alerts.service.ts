@@ -24,7 +24,7 @@ export class AlertsService {
           title: alert.title,
           message: alert.message,
           severity: alert.severity,
-          metadata: alert.metadata || {},
+          metadata: (alert.metadata || {}) as any,
         },
       });
 
