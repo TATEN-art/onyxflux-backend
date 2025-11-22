@@ -1,0 +1,215 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Plan {
+  FREE
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+enum AlertType {
+  WHALE_BUY
+  WHALE_SELL
+  WHALE_CLUSTER
+  WHALE_MEGA
+  WHALE_INSTITUTIONAL
+  MANIPULATION_SPOOFING
+  MANIPULATION_WASH
+  MANIPULATION_PUMPDUMP
+  MANIPULATION_RUG
+  LIQUIDITY_WARNING
+  BREAKOUT_SIGNAL
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+}
+
+model User {
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  plan                Plan      @default(FREE)
+  trialStart          DateTime  @default(now())
+  trialEnd            DateTime
+  novaCreditsLeft     Int       @default(0)
+  apiRequestCount     Int       @default(0)
+  novaRequestCount    Int       @default(0)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  
+  apiKeys             ApiKey[]
+  alerts              Alert[]
+  webhooks            Webhook[]
+  payments            Payment[]
+  emailVerifications  EmailVerification[]
+  
+  @@index([email])
+}
+
+model EmailVerification {
+  id          String    @id @default(uuid())
+  userId      String?
+  email       String
+  code        String
+  expiresAt   DateTime
+  verified    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  
+  user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([email, code])
+}
+
+model ApiKey {
+  id              String    @id @default(uuid())
+  userId          String
+  keyHash         String    @unique
+  keyPrefix       String
+  name            String?
+  lastUsedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  revokedAt       DateTime?
+  
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([keyHash])
+}
+
+model Payment {
+  id              String        @id @default(uuid())
+  userId          String
+  txHash          String        @unique
+  chain           String
+  token           String
+  amount          String
+  plan            Plan
+  status          PaymentStatus @default(PENDING)
+  confirmedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([txHash])
+  @@index([status])
+}
+
+model Alert {
+  id              String      @id @default(uuid())
+  userId          String
+  type            AlertType
+  title           String
+  message         String
+  severity        String
+  metadata        Json?
+  read            Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+  
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, read])
+  @@index([createdAt])
+}
+
+model Webhook {
+  id              String    @id @default(uuid())
+  userId          String
+  url             String
+  events          String[]
+  secret          String
+  active          Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries      WebhookDelivery[]
+  
+  @@index([userId])
+}
+
+model WebhookDelivery {
+  id              String    @id @default(uuid())
+  webhookId       String
+  payload         Json
+  status          Int
+  response        String?
+  attemptCount    Int       @default(1)
+  createdAt       DateTime  @default(now())
+  
+  webhook         Webhook   @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  
+  @@index([webhookId])
+  @@index([createdAt])
+}
+
+model WhaleActivity {
+  id              String    @id @default(uuid())
+  chain           String
+  tokenAddress    String
+  walletAddress   String
+  classification  String
+  amount          String
+  amountUsd       Float
+  type            String
+  txHash          String
+  metadata        Json?
+  detectedAt      DateTime  @default(now())
+  
+  @@index([chain, tokenAddress])
+  @@index([detectedAt])
+  @@index([classification])
+}
+
+model ManipulationEvent {
+  id              String    @id @default(uuid())
+  chain           String
+  tokenAddress    String
+  type            String
+  severity        String
+  confidence      Float
+  walletCluster   String?
+  metadata        Json?
+  detectedAt      DateTime  @default(now())
+  
+  @@index([chain, tokenAddress])
+  @@index([detectedAt])
+  @@index([type])
+}
+
+model LiquiditySnapshot {
+  id              String    @id @default(uuid())
+  chain           String
+  tokenAddress    String
+  poolAddress     String
+  liquidityUsd    Float
+  volume24h       Float
+  healthScore     Float
+  metadata        Json?
+  timestamp       DateTime  @default(now())
+  
+  @@index([chain, tokenAddress])
+  @@index([timestamp])
+}
+
+model SystemMetrics {
+  id              String    @id @default(uuid())
+  requests24h     Int
+  averageLatency  Float
+  successRate     Float
+  activeUsers     Int
+  novaUsage       Int
+  whaleEvents     Int
+  manipulationAlerts Int
+  timestamp       DateTime  @default(now())
+  
+  @@index([timestamp])
+}

@@ -1,0 +1,605 @@
+{
+  "info": {
+    "name": "OnyxFlux API",
+    "description": "Complete API collection for OnyxFlux - Multi-chain Web3 API platform with AI intelligence",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Send Verification Code",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/send-code",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "send-code"]
+            }
+          }
+        },
+        {
+          "name": "Verify Code",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"code\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-code",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "verify-code"]
+            }
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get User Stats",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/users/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "stats"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "API Keys",
+      "item": [
+        {
+          "name": "Generate API Key",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Production API Key\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api-keys",
+              "host": ["{{baseUrl}}"],
+              "path": ["api-keys"]
+            }
+          }
+        },
+        {
+          "name": "List API Keys",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/api-keys",
+              "host": ["{{baseUrl}}"],
+              "path": ["api-keys"]
+            }
+          }
+        },
+        {
+          "name": "Revoke API Key",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/api-keys/:keyId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api-keys", ":keyId"],
+              "variable": [{"key": "keyId", "value": ""}]
+            }
+          }
+        },
+        {
+          "name": "Rotate API Key",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/api-keys/:keyId/rotate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api-keys", ":keyId", "rotate"],
+              "variable": [{"key": "keyId", "value": ""}]
+            }
+          }
+        },
+        {
+          "name": "Get API Key Usage",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/api-keys/:keyId/usage",
+              "host": ["{{baseUrl}}"],
+              "path": ["api-keys", ":keyId", "usage"],
+              "variable": [{"key": "keyId", "value": ""}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Get Payment Info",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/payments/info",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "info"]
+            }
+          }
+        },
+        {
+          "name": "Get Payment History",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/payments/history",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "history"]
+            }
+          }
+        },
+        {
+          "name": "Confirm Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"txHash\": \"0x...\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payments/confirm",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "confirm"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Multi-Chain RPC",
+      "item": [
+        {
+          "name": "Get Supported Chains",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/v1/chains",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "chains"]
+            }
+          }
+        },
+        {
+          "name": "Get Chain Status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/v1/chains/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "chains", "status"]
+            }
+          }
+        },
+        {
+          "name": "Execute RPC Call (GET)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "X-API-Key", "value": "{{apiKey}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/v1/rpc/:chain?method=eth_blockNumber",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "rpc", ":chain"],
+              "query": [{"key": "method", "value": "eth_blockNumber"}],
+              "variable": [{"key": "chain", "value": "ethereum"}]
+            }
+          }
+        },
+        {
+          "name": "Execute RPC Call (POST)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "X-API-Key", "value": "{{apiKey}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"method\": \"eth_getBlockByNumber\",\n  \"params\": [\"latest\", false]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/rpc/:chain",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "rpc", ":chain"],
+              "variable": [{"key": "chain", "value": "ethereum"}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Nova Intelligence",
+      "item": [
+        {
+          "name": "Price Prediction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tokenAddress\": \"0x...\",\n  \"chain\": \"ethereum\",\n  \"historicalData\": [\n    {\"timestamp\": 1705320000, \"price\": 2500.50, \"volume\": 1000000}\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/nova/predict",
+              "host": ["{{baseUrl}}"],
+              "path": ["nova", "predict"]
+            }
+          }
+        },
+        {
+          "name": "Get Recent Whale Activity",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/nova/whales/recent?limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["nova", "whales", "recent"],
+              "query": [{"key": "limit", "value": "50"}]
+            }
+          }
+        },
+        {
+          "name": "Get Whale Activity by Token",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/nova/whales/:chain/:token?limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["nova", "whales", ":chain", ":token"],
+              "query": [{"key": "limit", "value": "50"}],
+              "variable": [
+                {"key": "chain", "value": "ethereum"},
+                {"key": "token", "value": "0x..."}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Liquidity Data",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/nova/liquidity/:chain/:token",
+              "host": ["{{baseUrl}}"],
+              "path": ["nova", "liquidity", ":chain", ":token"],
+              "variable": [
+                {"key": "chain", "value": "ethereum"},
+                {"key": "token", "value": "0x..."}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Recent Manipulation Events",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/nova/manipulation/recent?limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["nova", "manipulation", "recent"],
+              "query": [{"key": "limit", "value": "50"}]
+            }
+          }
+        },
+        {
+          "name": "Add Token to Whale Monitoring",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chain\": \"ethereum\",\n  \"tokenAddress\": \"0x...\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/nova/monitor/whale",
+              "host": ["{{baseUrl}}"],
+              "path": ["nova", "monitor", "whale"]
+            }
+          }
+        },
+        {
+          "name": "Add Pool to Liquidity Monitoring",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chain\": \"ethereum\",\n  \"poolAddress\": \"0x...\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/nova/monitor/liquidity",
+              "host": ["{{baseUrl}}"],
+              "path": ["nova", "monitor", "liquidity"]
+            }
+          }
+        },
+        {
+          "name": "Add Token to Manipulation Monitoring",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chain\": \"ethereum\",\n  \"tokenAddress\": \"0x...\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/nova/monitor/manipulation",
+              "host": ["{{baseUrl}}"],
+              "path": ["nova", "monitor", "manipulation"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Alerts",
+      "item": [
+        {
+          "name": "Get Alerts",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/alerts?limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["alerts"],
+              "query": [{"key": "limit", "value": "50"}]
+            }
+          }
+        },
+        {
+          "name": "Get Unread Count",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/alerts/unread-count",
+              "host": ["{{baseUrl}}"],
+              "path": ["alerts", "unread-count"]
+            }
+          }
+        },
+        {
+          "name": "Mark Alert as Read",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/alerts/:alertId/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["alerts", ":alertId", "read"],
+              "variable": [{"key": "alertId", "value": ""}]
+            }
+          }
+        },
+        {
+          "name": "Mark All Alerts as Read",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/alerts/read-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["alerts", "read-all"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "item": [
+        {
+          "name": "Create Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://your-domain.com/webhook\",\n  \"events\": [\"WHALE_BUY\", \"MANIPULATION_SPOOFING\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhooks",
+              "host": ["{{baseUrl}}"],
+              "path": ["webhooks"]
+            }
+          }
+        },
+        {
+          "name": "List Webhooks",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/webhooks",
+              "host": ["{{baseUrl}}"],
+              "path": ["webhooks"]
+            }
+          }
+        },
+        {
+          "name": "Delete Webhook",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/:webhookId",
+              "host": ["{{baseUrl}}"],
+              "path": ["webhooks", ":webhookId"],
+              "variable": [{"key": "webhookId", "value": ""}]
+            }
+          }
+        },
+        {
+          "name": "Toggle Webhook",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"active\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/:webhookId",
+              "host": ["{{baseUrl}}"],
+              "path": ["webhooks", ":webhookId"],
+              "variable": [{"key": "webhookId", "value": ""}]
+            }
+          }
+        },
+        {
+          "name": "Get Webhook Deliveries",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/:webhookId/deliveries?limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["webhooks", ":webhookId", "deliveries"],
+              "query": [{"key": "limit", "value": "50"}],
+              "variable": [{"key": "webhookId", "value": ""}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Get System Metrics",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/metrics/system",
+              "host": ["{{baseUrl}}"],
+              "path": ["metrics", "system"]
+            }
+          }
+        },
+        {
+          "name": "Get User Metrics",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/metrics/user",
+              "host": ["{{baseUrl}}"],
+              "path": ["metrics", "user"]
+            }
+          }
+        },
+        {
+          "name": "Get Usage Stats",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/metrics/usage",
+              "host": ["{{baseUrl}}"],
+              "path": ["metrics", "usage"]
+            }
+          }
+        },
+        {
+          "name": "Get System Status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["status"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
