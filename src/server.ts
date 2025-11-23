@@ -21,6 +21,20 @@ import { alertsRoutes } from './alerts/alerts.routes';
 import { webhooksRoutes } from './webhooks/webhooks.routes';
 import { analyticsRoutes } from './analytics/analytics.routes';
 import { AnalyticsService } from './analytics/analytics.service';
+import { walletRoutes } from './wallet/wallet.routes';
+import { liveRoutes } from './nova/live/live.routes';
+import { botsRoutes } from './bots/bots.routes';
+import { notificationsRoutes } from './notifications/notifications.routes';
+import { testRoutes } from './test/test.routes';
+import { dashboardRoutes } from './dashboard/dashboard.routes';
+import { botRoutes } from './bot_builder/bot.controller';
+import { tokenRoutes } from './token_generator/token.routes';
+import { backtestRoutes } from './backtesting/backtest.controller';
+import { strategiesRoutes } from './strategies_hub/strategies.routes';
+import { NovaWebSocketV2 } from './nova_v2/nova.websocket';
+import { BotQueue } from './bot_builder/bot.queue';
+import { novaChatRoutes } from './nova/chat/chat.routes';
+import { secureHeaders, xssProtection, validateInput, antiAbuseFilter } from './middlewares/security';
 
 const logger = new Logger('Server');
 
@@ -34,9 +48,16 @@ const liquidityService = new LiquidityService(chainsService);
 const manipulationService = new ManipulationService(chainsService);
 const analyticsService = new AnalyticsService(chainsService);
 const paymentsService = new PaymentsService();
+const novaWebSocketV2 = new NovaWebSocketV2();
+const botQueue = new BotQueue(novaWebSocketV2);
 
 async function start() {
   try {
+    fastify.addHook('onRequest', secureHeaders);
+    fastify.addHook('preHandler', xssProtection);
+    fastify.addHook('preHandler', validateInput);
+    fastify.addHook('preHandler', antiAbuseFilter);
+    
     await fastify.register(cors, {
       origin: config.cors.origin,
       credentials: true,
@@ -66,6 +87,18 @@ async function start() {
     await fastify.register(async (instance) => {
       await analyticsRoutes(instance, analyticsService);
     });
+    
+    await fastify.register(walletRoutes);
+    await fastify.register(liveRoutes);
+    await fastify.register(botsRoutes);
+    await fastify.register(notificationsRoutes);
+    await fastify.register(testRoutes);
+    await fastify.register(dashboardRoutes);
+    await fastify.register(botRoutes);
+    await fastify.register(tokenRoutes);
+    await fastify.register(backtestRoutes);
+    await fastify.register(strategiesRoutes);
+    await fastify.register(novaChatRoutes);
 
     fastify.get('/alerts/stream', { websocket: true }, (connection: any, _req: any) => {
       logger.info('WebSocket client connected');
@@ -96,6 +129,12 @@ async function start() {
     }
 
     paymentsService.startPaymentMonitoring();
+    
+    logger.info('Starting Nova V2 WebSocket server...');
+    novaWebSocketV2.initialize(fastify.server);
+    
+    logger.info('Starting Bot Queue...');
+    botQueue.start();
 
     setInterval(async () => {
       await analyticsService.recordSystemMetrics();
@@ -120,6 +159,7 @@ process.on('SIGTERM', async () => {
   whalesService.stopScanning();
   liquidityService.stopScanning();
   manipulationService.stopScanning();
+  botQueue.stop();
   
   await fastify.close();
   await prisma.$disconnect();

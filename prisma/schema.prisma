@@ -51,6 +51,10 @@ model User {
   webhooks            Webhook[]
   payments            Payment[]
   emailVerifications  EmailVerification[]
+  botsV2              BotConfigV2[]
+  backtests           Backtest[]
+  strategies          Strategy[]
+  strategyLikes       StrategyLike[]
   
   @@index([email])
 }
@@ -212,4 +216,100 @@ model SystemMetrics {
   timestamp       DateTime  @default(now())
   
   @@index([timestamp])
+}
+
+model BotConfigV2 {
+  id                      String    @id @default(uuid())
+  userId                  String
+  token                   String
+  chain                   String
+  framework               String    @default("Nova V2")
+  strategy                String
+  novaConfidence          Float     @default(0)
+  novaPredictions         Json      @default("{}")
+  riskLevel               String    @default("medium")
+  notificationsEnabled    Boolean   @default(true)
+  status                  String    @default("active")
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  signals                 BotSignal[]
+  
+  @@index([userId])
+  @@index([status])
+  @@index([token, chain])
+}
+
+model BotSignal {
+  id              String    @id @default(uuid())
+  botId           String
+  signal          String
+  strength        String
+  confidence      Float
+  price           Float
+  reasoning       String[]
+  timestamp       BigInt
+  executed        Boolean   @default(false)
+  metadata        Json?
+  createdAt       DateTime  @default(now())
+  
+  bot             BotConfigV2 @relation(fields: [botId], references: [id], onDelete: Cascade)
+  
+  @@index([botId])
+  @@index([timestamp])
+  @@index([signal])
+}
+
+model Backtest {
+  id              String    @id @default(uuid())
+  userId          String
+  result          Json
+  createdAt       DateTime  @default(now())
+  
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Strategy {
+  id                  String    @id @default(uuid())
+  userId              String
+  name                String
+  description         String
+  strategyType        String
+  timeframe           String
+  riskLevel           String
+  parameters          Json
+  backtestResults     Json?
+  isPublic            Boolean   @default(false)
+  isNovaVerified      Boolean   @default(false)
+  likes               Int       @default(0)
+  views               Int       @default(0)
+  copies              Int       @default(0)
+  tags                String[]
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  strategyLikes       StrategyLike[]
+  
+  @@index([userId])
+  @@index([isPublic])
+  @@index([isNovaVerified])
+  @@index([likes])
+  @@index([createdAt])
+}
+
+model StrategyLike {
+  userId          String
+  strategyId      String
+  createdAt       DateTime  @default(now())
+  
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  strategy        Strategy  @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  
+  @@id([userId, strategyId])
+  @@unique([userId, strategyId])
 }
