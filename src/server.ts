@@ -33,6 +33,8 @@ import { backtestRoutes } from './backtesting/backtest.controller';
 import { strategiesRoutes } from './strategies_hub/strategies.routes';
 import { NovaWebSocketV2 } from './nova_v2/nova.websocket';
 import { BotQueue } from './bot_builder/bot.queue';
+import { novaChatRoutes } from './nova/chat/chat.routes';
+import { secureHeaders, xssProtection, validateInput, antiAbuseFilter } from './middlewares/security';
 
 const logger = new Logger('Server');
 
@@ -51,6 +53,11 @@ const botQueue = new BotQueue(novaWebSocketV2);
 
 async function start() {
   try {
+    fastify.addHook('onRequest', secureHeaders);
+    fastify.addHook('preHandler', xssProtection);
+    fastify.addHook('preHandler', validateInput);
+    fastify.addHook('preHandler', antiAbuseFilter);
+    
     await fastify.register(cors, {
       origin: config.cors.origin,
       credentials: true,
@@ -91,6 +98,7 @@ async function start() {
     await fastify.register(tokenRoutes);
     await fastify.register(backtestRoutes);
     await fastify.register(strategiesRoutes);
+    await fastify.register(novaChatRoutes);
 
     fastify.get('/alerts/stream', { websocket: true }, (connection: any, _req: any) => {
       logger.info('WebSocket client connected');

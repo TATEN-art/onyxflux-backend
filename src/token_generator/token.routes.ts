@@ -3,6 +3,8 @@ import { Logger } from '../utils/logger';
 import { ERC20Generator, ERC20Config } from './erc20.generator';
 import { ERC721Generator, ERC721Config } from './erc721.generator';
 import { TokenAudit, TokenAuditRequest } from './token.audit';
+import { requireTokenGenerator } from '../middlewares/planLimits';
+import { auditMiddleware } from '../middlewares/security';
 
 const logger = new Logger('TokenRoutes');
 
@@ -16,7 +18,7 @@ export async function tokenRoutes(fastify: FastifyInstance) {
    * Generate ERC-20 or ERC-721 token contract
    */
   fastify.post('/api/token/generate', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireTokenGenerator, auditMiddleware('generate', 'token')],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const body = request.body as { type: 'ERC20' | 'ERC721'; config: ERC20Config | ERC721Config };
@@ -61,7 +63,7 @@ export async function tokenRoutes(fastify: FastifyInstance) {
    * Get deployment instructions (user deploys via their wallet)
    */
   fastify.post('/api/token/deploy', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireTokenGenerator],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const body = request.body as { 
@@ -115,7 +117,7 @@ export async function tokenRoutes(fastify: FastifyInstance) {
    * Audit a token contract for security risks
    */
   fastify.post('/api/token/audit', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireTokenGenerator],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const body = request.body as TokenAuditRequest;
@@ -149,7 +151,7 @@ export async function tokenRoutes(fastify: FastifyInstance) {
    * Quick audit for a token
    */
   fastify.get('/api/token/audit/quick/:chain/:address', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireTokenGenerator],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { chain, address } = request.params as { chain: string; address: string };
@@ -175,7 +177,7 @@ export async function tokenRoutes(fastify: FastifyInstance) {
    * Get recommended token templates
    */
   fastify.get('/api/token/templates', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireTokenGenerator],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const templates = {

@@ -2,6 +2,8 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { Logger } from '../utils/logger';
 import { BotService } from './bot.service';
 import { CreateBotRequest, UpdateBotRequest } from './bot.model';
+import { requireBotBuilder } from '../middlewares/planLimits';
+import { auditMiddleware } from '../middlewares/security';
 
 const logger = new Logger('BotController');
 
@@ -13,7 +15,7 @@ export async function botRoutes(fastify: FastifyInstance) {
    * Create a new bot
    */
   fastify.post('/api/bot/create', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireBotBuilder, auditMiddleware('create', 'bot')],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request as any).user.userId;
@@ -52,7 +54,7 @@ export async function botRoutes(fastify: FastifyInstance) {
    * Update bot configuration
    */
   fastify.post('/api/bot/update', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireBotBuilder, auditMiddleware('update', 'bot')],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request as any).user.userId;
@@ -91,7 +93,7 @@ export async function botRoutes(fastify: FastifyInstance) {
    * List all bots for user
    */
   fastify.get('/api/bot/list', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireBotBuilder],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request as any).user.userId;
@@ -118,7 +120,7 @@ export async function botRoutes(fastify: FastifyInstance) {
    * Get bot by ID
    */
   fastify.get('/api/bot/:id', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireBotBuilder],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request as any).user.userId;
@@ -151,7 +153,7 @@ export async function botRoutes(fastify: FastifyInstance) {
    * Delete bot
    */
   fastify.delete('/api/bot/:id', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireBotBuilder, auditMiddleware('delete', 'bot')],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request as any).user.userId;
@@ -184,7 +186,7 @@ export async function botRoutes(fastify: FastifyInstance) {
    * Get strategy suggestions for bot
    */
   fastify.get('/api/bot/:id/suggestions', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireBotBuilder],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request as any).user.userId;

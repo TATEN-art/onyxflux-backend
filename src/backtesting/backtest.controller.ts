@@ -2,6 +2,8 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { Logger } from '../utils/logger';
 import { BacktestService } from './backtest.service';
 import { BacktestConfig } from './backtest.engine';
+import { requireBacktesting } from '../middlewares/planLimits';
+import { auditMiddleware } from '../middlewares/security';
 
 const logger = new Logger('BacktestController');
 
@@ -13,7 +15,7 @@ export async function backtestRoutes(fastify: FastifyInstance) {
    * Run a new backtest
    */
   fastify.post('/api/backtest/run', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireBacktesting, auditMiddleware('run', 'backtest')],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request as any).user.userId;
@@ -76,7 +78,7 @@ export async function backtestRoutes(fastify: FastifyInstance) {
    * List user's backtests
    */
   fastify.get('/api/backtest/list', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireBacktesting],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request as any).user.userId;
@@ -107,7 +109,7 @@ export async function backtestRoutes(fastify: FastifyInstance) {
    * Get backtest by ID
    */
   fastify.get('/api/backtest/:id', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireBacktesting],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request as any).user.userId;
@@ -140,7 +142,7 @@ export async function backtestRoutes(fastify: FastifyInstance) {
    * Delete backtest
    */
   fastify.delete('/api/backtest/:id', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireBacktesting, auditMiddleware('delete', 'backtest')],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request as any).user.userId;
@@ -173,7 +175,7 @@ export async function backtestRoutes(fastify: FastifyInstance) {
    * Compare multiple backtests
    */
   fastify.post('/api/backtest/compare', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireBacktesting],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request as any).user.userId;

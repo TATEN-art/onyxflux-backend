@@ -1,6 +1,8 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { Logger } from '../utils/logger';
 import { StrategiesService, CreateStrategyRequest } from './strategies.service';
+import { requireStrategyHub } from '../middlewares/planLimits';
+import { auditMiddleware } from '../middlewares/security';
 
 const logger = new Logger('StrategiesRoutes');
 
@@ -12,7 +14,7 @@ export async function strategiesRoutes(fastify: FastifyInstance) {
    * Create a new strategy
    */
   fastify.post('/api/strategies/create', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireStrategyHub, auditMiddleware('create', 'strategy')],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request as any).user.userId;
@@ -132,7 +134,7 @@ export async function strategiesRoutes(fastify: FastifyInstance) {
    * Get user's strategies
    */
   fastify.get('/api/strategies/my', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireStrategyHub],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request as any).user.userId;
@@ -190,7 +192,7 @@ export async function strategiesRoutes(fastify: FastifyInstance) {
    * Update strategy
    */
   fastify.put('/api/strategies/:id', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireStrategyHub, auditMiddleware('update', 'strategy')],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request as any).user.userId;
@@ -224,7 +226,7 @@ export async function strategiesRoutes(fastify: FastifyInstance) {
    * Delete strategy
    */
   fastify.delete('/api/strategies/:id', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireStrategyHub, auditMiddleware('delete', 'strategy')],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request as any).user.userId;
@@ -257,7 +259,7 @@ export async function strategiesRoutes(fastify: FastifyInstance) {
    * Like/unlike a strategy
    */
   fastify.post('/api/strategies/:id/like', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireStrategyHub],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request as any).user.userId;
@@ -284,7 +286,7 @@ export async function strategiesRoutes(fastify: FastifyInstance) {
    * Copy a strategy
    */
   fastify.post('/api/strategies/:id/copy', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireStrategyHub],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request as any).user.userId;
