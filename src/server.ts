@@ -21,6 +21,12 @@ import { alertsRoutes } from './alerts/alerts.routes';
 import { webhooksRoutes } from './webhooks/webhooks.routes';
 import { analyticsRoutes } from './analytics/analytics.routes';
 import { AnalyticsService } from './analytics/analytics.service';
+import { walletRoutes } from './wallet/wallet.routes';
+import { novaLiveRoutes } from './nova/live/live.routes';
+import { botsRoutes } from './bots/bots.routes';
+import { notificationsRoutes } from './notifications/notifications.routes';
+import { testRoutes } from './test/test.routes';
+import { dashboardRoutes } from './dashboard/dashboard.routes';
 
 const logger = new Logger('Server');
 
@@ -66,6 +72,13 @@ async function start() {
     await fastify.register(async (instance) => {
       await analyticsRoutes(instance, analyticsService);
     });
+    
+    await fastify.register(walletRoutes);
+    await fastify.register(novaLiveRoutes);
+    await fastify.register(botsRoutes);
+    await fastify.register(notificationsRoutes);
+    await fastify.register(testRoutes);
+    await fastify.register(dashboardRoutes);
 
     fastify.get('/alerts/stream', { websocket: true }, (connection: any, _req: any) => {
       logger.info('WebSocket client connected');

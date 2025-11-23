@@ -51,6 +51,9 @@ model User {
   webhooks            Webhook[]
   payments            Payment[]
   emailVerifications  EmailVerification[]
+  wallets             UserWallet[]
+  bots                BotConfig[]
+  notificationSettings UserNotificationSettings?
   
   @@index([email])
 }
@@ -212,4 +215,53 @@ model SystemMetrics {
   timestamp       DateTime  @default(now())
   
   @@index([timestamp])
+}
+
+model UserWallet {
+  id              String    @id @default(uuid())
+  userId          String
+  address         String
+  chain           String
+  createdAt       DateTime  @default(now())
+  
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, address, chain])
+  @@index([userId])
+  @@index([address])
+}
+
+model BotConfig {
+  id                      String    @id @default(uuid())
+  userId                  String
+  token                   String
+  strategyType            String
+  riskLevel               String
+  timeframe               String
+  notificationsEnabled    Boolean   @default(true)
+  status                  String    @default("active")
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([status])
+}
+
+model UserNotificationSettings {
+  id                      String    @id @default(uuid())
+  userId                  String    @unique
+  emailEnabled            Boolean   @default(true)
+  webhookEnabled          Boolean   @default(false)
+  whaleAlerts             Boolean   @default(true)
+  manipulationAlerts      Boolean   @default(true)
+  liquidityAlerts         Boolean   @default(true)
+  botSignals              Boolean   @default(true)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
 }
