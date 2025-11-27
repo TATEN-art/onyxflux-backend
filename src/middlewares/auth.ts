@@ -1,43 +1,53 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { verifyToken } from '../utils/jwt';
-import prisma from '../config/database';
+import { PrismaClient } from '@prisma/client';
+import { AppError } from '../utils/errorHandler';
 
-export interface AuthenticatedRequest extends FastifyRequest {
-  user?: {
-    userId: string;
-    email: string;
-    plan: string;
-  };
-}
+const prisma = new PrismaClient();
 
 export async function authMiddleware(
-  request: AuthenticatedRequest,
+  request: FastifyRequest,
   reply: FastifyReply
-): Promise<void> {
+) {
   try {
     const authHeader = request.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return reply.status(401).send({ error: 'Unauthorized: No token provided' });
+      throw new AppError(401, 'Missing or invalid authorization header');
     }
 
     const token = authHeader.substring(7);
-    const payload = verifyToken(token);
 
-    const user = await prisma.user.findUnique({
-      where: { id: payload.userId },
+    const session = await prisma.session.findUnique({
+      where: { token },
+      include: { user: true },
     });
 
-    if (!user) {
-      return reply.status(401).send({ error: 'Unauthorized: User not found' });
+    if (!session) {
+      throw new AppError(401, 'Invalid session token');
     }
 
-    request.user = {
-      userId: user.id,
-      email: user.email,
-      plan: user.plan,
-    };
+    if (session.expiresAt < new Date()) {
+      await prisma.session.delete({ where: { id: session.id } });
+      throw new AppError(401, 'Session expired');
+    }
+
+    request.user = session.user;
   } catch (error) {
-    return reply.status(401).send({ error: 'Unauthorized: Invalid token' });
+    if (error instanceof AppError) {
+      throw error;
+    }
+    throw new AppError(401, 'Authentication failed');
+  }
+}
+
+declare module 'fastify' {
+  interface FastifyRequest {
+    user?: {
+      id: string;
+      email: string;
+      name: string | null;
+      plan: string;
+      planExpiry: Date | null;
+    };
   }
 }

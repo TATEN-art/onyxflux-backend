@@ -1,99 +1,80 @@
-import prisma from '../config/database';
-import { generateApiKey, hashApiKey } from '../utils/crypto';
-import { Logger } from '../utils/logger';
-import redis from '../config/redis';
+import { PrismaClient } from '@prisma/client';
+import { generateApiKey } from '../utils/crypto';
+import { AppError } from '../utils/errorHandler';
 
-const logger = new Logger('ApiKeysService');
+const prisma = new PrismaClient();
 
-export class ApiKeysService {
-  async generateKey(userId: string, name?: string): Promise<{ key: string; prefix: string }> {
-    const key = generateApiKey();
-    const keyHash = await hashApiKey(key);
-    const keyPrefix = key.substring(0, 20);
+export async function createApiKey(userId: string, name: string, type: string = 'standard') {
+  const { key, hash, prefix } = generateApiKey(type === 'nova' ? 'of_nova' : 'of');
 
-    await prisma.apiKey.create({
-      data: {
-        userId,
-        keyHash,
-        keyPrefix,
-        name: name || 'Default API Key',
-      },
-    });
+  const apiKey = await prisma.apiKey.create({
+    data: {
+      userId,
+      name,
+      keyHash: hash,
+      keyPrefix: prefix,
+      type,
+      isActive: true,
+    },
+  });
 
-    logger.info(`API key generated for user ${userId}`);
-    return { key, prefix: keyPrefix };
+  return {
+    id: apiKey.id,
+    name: apiKey.name,
+    key,
+    prefix: apiKey.keyPrefix,
+    type: apiKey.type,
+    createdAt: apiKey.createdAt,
+  };
+}
+
+export async function listApiKeys(userId: string) {
+  const apiKeys = await prisma.apiKey.findMany({
+    where: { userId },
+    select: {
+      id: true,
+      name: true,
+      keyPrefix: true,
+      type: true,
+      isActive: true,
+      lastUsedAt: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return apiKeys;
+}
+
+export async function revokeApiKey(userId: string, keyId: string) {
+  const apiKey = await prisma.apiKey.findFirst({
+    where: { id: keyId, userId },
+  });
+
+  if (!apiKey) {
+    throw new AppError(404, 'API key not found');
   }
 
-  async listKeys(userId: string) {
-    const keys = await prisma.apiKey.findMany({
-      where: {
-        userId,
-        revokedAt: null,
-      },
-      select: {
-        id: true,
-        keyPrefix: true,
-        name: true,
-        lastUsedAt: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+  await prisma.apiKey.update({
+    where: { id: keyId },
+    data: { isActive: false },
+  });
 
-    return keys;
+  return { success: true };
+}
+
+export async function deleteApiKey(userId: string, keyId: string) {
+  const apiKey = await prisma.apiKey.findFirst({
+    where: { id: keyId, userId },
+  });
+
+  if (!apiKey) {
+    throw new AppError(404, 'API key not found');
   }
 
-  async revokeKey(userId: string, keyId: string): Promise<void> {
-    const key = await prisma.apiKey.findFirst({
-      where: { id: keyId, userId },
-    });
+  await prisma.apiKey.delete({
+    where: { id: keyId },
+  });
 
-    if (!key) {
-      throw new Error('API key not found');
-    }
-
-    await prisma.apiKey.update({
-      where: { id: keyId },
-      data: { revokedAt: new Date() },
-    });
-
-    logger.info(`API key revoked: ${keyId}`);
-  }
-
-  async rotateKey(userId: string, keyId: string): Promise<{ key: string; prefix: string }> {
-    const oldKey = await prisma.apiKey.findFirst({
-      where: { id: keyId, userId },
-    });
-
-    if (!oldKey) {
-      throw new Error('API key not found');
-    }
-
-    await this.revokeKey(userId, keyId);
-    const newKey = await this.generateKey(userId, oldKey.name || undefined);
-
-    logger.info(`API key rotated for user ${userId}`);
-    return newKey;
-  }
-
-  async getUsageStats(userId: string, keyId: string) {
-    const key = await prisma.apiKey.findFirst({
-      where: { id: keyId, userId },
-    });
-
-    if (!key) {
-      throw new Error('API key not found');
-    }
-
-    const today = new Date().toISOString().split('T')[0];
-    const usageKey = `usage:${userId}:${today}`;
-    const usage = await redis.get(usageKey);
-
-    return {
-      keyId,
-      keyPrefix: key.keyPrefix,
-      lastUsedAt: key.lastUsedAt,
-      usageToday: parseInt(usage || '0'),
-    };
-  }
+  return { success: true };
 }

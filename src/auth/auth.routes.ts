@@ -1,69 +1,71 @@
 import { FastifyInstance } from 'fastify';
-import { AuthService } from './auth.service';
-import { authMiddleware, AuthenticatedRequest } from '../middlewares/auth';
+import { z } from 'zod';
+import { verifyGoogleToken, createOrUpdateUser, createSession, deleteSession } from './auth.service';
+import { authMiddleware } from '../middlewares/auth';
+import { AppError } from '../utils/errorHandler';
 
-const authService = new AuthService();
+const googleAuthSchema = z.object({
+  idToken: z.string(),
+});
 
-export async function authRoutes(fastify: FastifyInstance): Promise<void> {
-  fastify.post('/auth/send-code', async (request, reply) => {
+export async function authRoutes(fastify: FastifyInstance) {
+  fastify.post('/google/verify', async (request, reply) => {
     try {
-      const { email } = request.body as { email: string };
+      const { idToken } = googleAuthSchema.parse(request.body);
 
-      if (!email || !email.includes('@')) {
-        return reply.status(400).send({ error: 'Valid email required' });
-      }
+      const googleData = await verifyGoogleToken(idToken);
+      const { user, isNewUser } = await createOrUpdateUser(googleData);
+      const session = await createSession(user.id);
 
-      await authService.sendVerificationCode(email);
-
-      return reply.send({ message: 'Verification code sent' });
-    } catch (error) {
-      console.error('Send code error:', error);
-      return reply.status(500).send({ error: 'Failed to send verification code' });
-    }
-  });
-
-  fastify.post('/auth/verify-code', async (request, reply) => {
-    try {
-      const { email, code } = request.body as { email: string; code: string };
-
-      if (!email || !code) {
-        return reply.status(400).send({ error: 'Email and code required' });
-      }
-
-      const token = await authService.verifyCode(email, code);
-
-      return reply.send({ token });
-    } catch (error) {
-      console.error('Verify code error:', error);
-      return reply.status(401).send({ error: 'Invalid or expired code' });
-    }
-  });
-
-  fastify.get('/auth/me', {
-    preHandler: authMiddleware,
-  }, async (request: AuthenticatedRequest, reply) => {
-    try {
-      const user = await prisma.user.findUnique({
-        where: { id: request.user!.userId },
-        select: {
-          id: true,
-          email: true,
-          plan: true,
-          trialStart: true,
-          trialEnd: true,
-          novaCreditsLeft: true,
-          apiRequestCount: true,
-          novaRequestCount: true,
-          createdAt: true,
+      return reply.send({
+        success: true,
+        data: {
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            plan: user.plan,
+            planExpiry: user.planExpiry,
+          },
+          session: {
+            token: session.token,
+            expiresAt: session.expiresAt,
+          },
+          isNewUser,
         },
       });
-
-      return reply.send({ user });
     } catch (error) {
-      console.error('Get user error:', error);
-      return reply.status(500).send({ error: 'Failed to get user' });
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw new AppError(400, 'Authentication failed');
     }
   });
-}
 
-import prisma from '../config/database';
+  fastify.post('/logout', { preHandler: authMiddleware }, async (request, reply) => {
+    try {
+      const authHeader = request.headers.authorization;
+      const token = authHeader?.substring(7);
+
+      if (token) {
+        await deleteSession(token);
+      }
+
+      return reply.send({
+        success: true,
+        message: 'Logged out successfully',
+      });
+    } catch (error) {
+      throw new AppError(400, 'Logout failed');
+    }
+  });
+
+  fastify.get('/me', { preHandler: authMiddleware }, async (request, reply) => {
+    return reply.send({
+      success: true,
+      data: {
+        user: request.user,
+      },
+    });
+  });
+}

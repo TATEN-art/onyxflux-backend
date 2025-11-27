@@ -1,416 +1,179 @@
-# OnyxFlux Backend
+# OnyxFlux Backend - Phase 1 Foundation
 
-**Multi-chain Web3 API platform with integrated artificial intelligence**
+Multi-chain Web3 API Platform Backend - Phase 1 Foundation
 
-OnyxFlux is a production-ready backend infrastructure that powers a comprehensive Web3 API platform featuring:
-- Multi-chain RPC gateway (12+ chains)
-- Nova Intelligence AI engine with price prediction
-- Real-time whale detection and tracking
-- Liquidity monitoring and health scoring
-- Manipulation detection (spoofing, wash trading, pump & dump, rug pulls)
-- User authentication with email OTP
-- Subscription management with crypto payments
-- API key management with rate limiting
-- Real-time alerts via WebSocket, email, and webhooks
-- Comprehensive analytics and dashboards
+## Features
+
+- **Google OAuth Authentication**: Secure authentication using Google ID tokens (NextAuth-compatible)
+- **API Key Management**: Generate, manage, and revoke multiple API keys per user
+- **Crypto Wallet Payments**: Accept payments via WalletConnect to admin wallet with on-chain verification
+- **Usage Analytics**: Track requests, latency, and API usage
+- **Rate Limiting**: Redis-backed rate limiting per API key
+- **Request Logging**: Comprehensive logging of all API requests
 
 ## Tech Stack
 
 - **Runtime**: Node.js 18+
 - **Framework**: Fastify
-- **Language**: TypeScript
-- **Database**: PostgreSQL (via Prisma ORM)
+- **Database**: PostgreSQL with Prisma ORM
 - **Cache**: Redis
-- **Blockchain**: Ethers.js
-- **Email**: SendGrid / Resend
-- **Deployment**: Docker, PM2, Nginx
-
-## Features
-
-### Authentication
-- Magic link / Email OTP login (no passwords)
-- JWT-based sessions
-- Automatic user registration on first login
-- 5-day free trial for new users
-
-### Subscription Plans
-- **Free**: 100k requests, 0 Nova credits, 5-day trial
-- **Starter**: 1M requests, 250 Nova credits ($99/month)
-- **Pro**: 10M requests, 2500 Nova credits ($499/month)
-- **Enterprise**: Unlimited requests, 10,000 Nova credits ($1999/month)
-
-### Crypto Payments
-Accept USDT/USDC on:
-- Ethereum
-- Polygon
-- Arbitrum
-- Optimism
-- Base
-
-### API Key Management
-- Generate, revoke, and rotate API keys
-- Usage tracking per key
-- Rate limiting per plan
-- Secure hashed storage
-
-### Multi-Chain RPC Gateway
-Supported chains:
-- Ethereum, Polygon, Arbitrum, Optimism, Base
-- BSC, Avalanche, Fantom, Cronos
-- Linea, Scroll, zkSync
-
-Features:
-- Auto-retry with failover
-- Latency measurement
-- Success rate tracking
-
-### Nova Intelligence Engine
-
-#### Price Prediction
-Multiple models:
-- ARIMA
-- Holt-Winters
-- Volatility clustering
-- Whale-weight regression
-- Liquidity delta model
-
-Output:
-- 1h, 4h, 24h predictions
-- Confidence scores
-- Reasoning explanations
-
-#### Whale Detection (30-second cycles)
-Classifications:
-- Small whale: $250k+
-- Medium whale: $500k+
-- Mega whale: $1M+
-- Institutional whale: $5M+
-
-Features:
-- Entity clustering
-- Multi-wallet activity detection
-- CEX movement tracking
-
-#### Liquidity Monitoring (30-second cycles)
-- Real-time liquidity tracking
-- 24h volume estimation
-- Health score calculation
-- Low liquidity warnings
-
-#### Manipulation Detection (30-second cycles)
-Detects:
-- Spoofing (fake walls)
-- Wash trading
-- Pump & dump patterns
-- Rug pulls
-- Coordinated whale actions
-
-### Alert System
-- In-dashboard alerts (stored in database)
-- Real-time WebSocket stream
-- Email notifications
-- Webhook delivery with HMAC signatures
-
-### Analytics
-- System metrics (requests, latency, success rate)
-- User metrics (usage, credits, plan details)
-- Chain status monitoring
-- Historical usage data
+- **Authentication**: Google OAuth 2.0, JWT
+- **Validation**: Zod
+- **Email**: Nodemailer
 
 ## Installation
 
 ### Prerequisites
+
 - Node.js 18+
-- PostgreSQL 15+
-- Redis 7+
-- npm or yarn
+- PostgreSQL database
+- Redis server
+- Google OAuth credentials
+- SMTP server for emails
+- RPC endpoints for supported chains (Ethereum, Polygon, Base, Arbitrum, Optimism)
 
-### Local Development
+### Setup
 
-1. Clone the repository:
+1. **Clone the repository**
+
 ```bash
-git clone <repository-url>
+git clone https://github.com/TATEN-art/onyxflux-backend.git
 cd onyxflux-backend
 ```
 
-2. Install dependencies:
+2. **Install dependencies**
+
 ```bash
 npm install
 ```
 
-3. Copy environment variables:
+3. **Configure environment variables**
+
+Copy `.env.example` to `.env` and fill in all required values:
+
 ```bash
 cp .env.example .env
 ```
 
-4. Configure `.env` with your settings (see Environment Variables section)
+Required environment variables:
+- `DATABASE_URL`: PostgreSQL connection string
+- `REDIS_URL`: Redis connection string
+- `JWT_SECRET`: Secret key for JWT tokens (min 32 characters)
+- `GOOGLE_CLIENT_ID`: Google OAuth client ID
+- `GOOGLE_CLIENT_SECRET`: Google OAuth client secret
+- `EMAIL_SERVER`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASS`: SMTP configuration
+- `BACKEND_URL`, `FRONTEND_URL`: Application URLs
+- `ADMIN_WALLET_ADDRESS`: Wallet address for receiving payments (0x654b3235f81f77023423c5533281f079ad8286a7)
+- `ETH_RPC_URL`, `POLYGON_RPC_URL`, `BASE_RPC_URL`, `ARBITRUM_RPC_URL`, `OPTIMISM_RPC_URL`: RPC endpoints
 
-5. Generate Prisma client:
+4. **Generate Prisma client**
+
 ```bash
 npm run prisma:generate
 ```
 
-6. Run database migrations:
+5. **Run database migrations**
+
 ```bash
 npm run prisma:migrate
 ```
 
-7. Start development server:
+6. **Start the development server**
+
 ```bash
 npm run dev
 ```
 
-The server will start on `http://localhost:3000`
+The server will start on `http://localhost:3000` (or the PORT specified in .env)
 
-## Environment Variables
+## Production Deployment
 
-See `.env.example` for all required environment variables. Key variables:
+1. **Build the project**
 
-```env
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/onyxflux
-
-# Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
-
-# JWT
-JWT_SECRET=your-secret-key
-
-# Email (SendGrid or Resend)
-EMAIL_PROVIDER=sendgrid
-SENDGRID_API_KEY=your-key
-
-# RPC Endpoints
-RPC_ETHEREUM=https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY
-RPC_POLYGON=https://polygon-mainnet.g.alchemy.com/v2/YOUR_KEY
-# ... (see .env.example for all chains)
-
-# Payment Wallet
-PAYMENT_WALLET_ADDRESS=0xYourWalletAddress
-```
-
-## Deployment
-
-### Docker Deployment
-
-1. Build and start services:
 ```bash
-docker-compose up -d
+npm run build
 ```
 
-2. Run migrations:
+2. **Run database migrations**
+
 ```bash
-docker-compose exec backend npx prisma migrate deploy
+npm run prisma:deploy
 ```
 
-### VPS Deployment
+3. **Start the production server**
 
-See `DEPLOYMENT.md` for complete VPS deployment guide including:
-- Server setup
-- Docker installation
-- Nginx configuration
-- SSL certificate setup
-- PM2 process management
+```bash
+npm start
+```
 
-## API Documentation
+## API Endpoints
 
 ### Authentication
 
-#### Send Verification Code
-```http
-POST /auth/send-code
-Content-Type: application/json
-
-{
-  "email": "user@example.com"
-}
-```
-
-#### Verify Code
-```http
-POST /auth/verify-code
-Content-Type: application/json
-
-{
-  "email": "user@example.com",
-  "code": "123456"
-}
-```
-
-Response:
-```json
-{
-  "token": "jwt-token-here"
-}
-```
-
-#### Get Current User
-```http
-GET /auth/me
-Authorization: Bearer {token}
-```
+- `POST /auth/google/verify` - Verify Google ID token and create session
+- `POST /auth/logout` - Logout and destroy session
+- `GET /auth/me` - Get current user info
 
 ### API Keys
 
-#### Generate API Key
-```http
-POST /api-keys
-Authorization: Bearer {token}
-Content-Type: application/json
+- `POST /api-keys` - Create new API key
+- `GET /api-keys` - List all API keys
+- `POST /api-keys/revoke` - Revoke an API key
+- `DELETE /api-keys/:keyId` - Delete an API key
 
-{
-  "name": "My API Key"
-}
-```
+### Billing
 
-Response:
-```json
-{
-  "key": "ONYX-KEY-...",
-  "prefix": "ONYX-KEY-abc123..."
-}
-```
-
-#### List API Keys
-```http
-GET /api-keys
-Authorization: Bearer {token}
-```
-
-### Multi-Chain RPC
-
-#### Execute RPC Call
-```http
-POST /v1/rpc/{chain}
-X-API-Key: ONYX-KEY-...
-Content-Type: application/json
-
-{
-  "method": "eth_blockNumber",
-  "params": []
-}
-```
-
-### Nova Intelligence
-
-#### Price Prediction
-```http
-POST /nova/predict
-Authorization: Bearer {token}
-Content-Type: application/json
-
-{
-  "tokenAddress": "0x...",
-  "chain": "ethereum",
-  "historicalData": [
-    {"timestamp": 1234567890, "price": 100, "volume": 1000000}
-  ]
-}
-```
-
-#### Get Whale Activity
-```http
-GET /nova/whales/recent?limit=50
-Authorization: Bearer {token}
-```
-
-#### Get Liquidity Data
-```http
-GET /nova/liquidity/{chain}/{token}
-Authorization: Bearer {token}
-```
-
-#### Get Manipulation Events
-```http
-GET /nova/manipulation/recent?limit=50
-Authorization: Bearer {token}
-```
-
-### Alerts
-
-#### Get Alerts
-```http
-GET /alerts?limit=50
-Authorization: Bearer {token}
-```
-
-#### WebSocket Stream
-```
-ws://localhost:3000/alerts/stream
-```
-
-### Webhooks
-
-#### Create Webhook
-```http
-POST /webhooks
-Authorization: Bearer {token}
-Content-Type: application/json
-
-{
-  "url": "https://your-domain.com/webhook",
-  "events": ["WHALE_BUY", "MANIPULATION_SPOOFING"]
-}
-```
+- `POST /billing/confirm` - Confirm crypto payment and upgrade plan
+- `GET /billing/payments` - Get payment history
 
 ### Analytics
 
-#### System Metrics
-```http
-GET /metrics/system
-```
+- `GET /analytics` - Get usage analytics and request logs
 
-#### User Metrics
-```http
-GET /metrics/user
-Authorization: Bearer {token}
-```
+### Health
 
-#### Usage Stats
-```http
-GET /metrics/usage
-Authorization: Bearer {token}
-```
+- `GET /health` - Health check endpoint
 
-## Project Structure
+## Folder Structure
 
 ```
 src/
-├── auth/              # Authentication (email OTP, JWT)
-├── users/             # User management
+├── auth/              # Authentication logic
+├── users/             # User management and analytics
+├── billing/           # Payment verification and plan management
 ├── apiKeys/           # API key management
-├── payments/          # Crypto payment monitoring
-├── chains/            # Multi-chain RPC gateway
-├── nova/              # Nova Intelligence Engine
-│   ├── prediction/    # Price prediction models
-│   ├── whales/        # Whale detection
-│   ├── liquidity/     # Liquidity monitoring
-│   └── manipulation/  # Manipulation detection
-├── alerts/            # Alert system
-├── webhooks/          # Webhook delivery
-├── analytics/         # Analytics & metrics
-├── middlewares/       # Auth, rate limiting, usage tracking
-├── config/            # Configuration
-├── utils/             # Utilities
+├── config/            # Environment configuration
+├── utils/             # Utility functions (logger, crypto, email, error handling)
+├── middlewares/       # Authentication and API key middlewares
+├── nova/              # (Phase 3+) Nova Intelligence Engine
+├── bots/              # (Phase 3+) Bot Builder
+├── tokenGenerator/    # (Phase 3+) Token Generator
+├── backtesting/       # (Phase 3+) Backtesting Engine
+├── strategies/        # (Phase 3+) Strategy Hub
 └── server.ts          # Main server file
+
+prisma/
+└── schema.prisma      # Database schema
 ```
 
-## Scripts
+## Next Steps
 
-- `npm run dev` - Start development server with hot reload
-- `npm run build` - Build for production
-- `npm start` - Start production server
-- `npm run lint` - Run ESLint
-- `npm run typecheck` - Run TypeScript type checking
-- `npm run prisma:generate` - Generate Prisma client
-- `npm run prisma:migrate` - Run database migrations
-- `npm run prisma:studio` - Open Prisma Studio
+Phase 1 provides the foundation. Future phases will add:
 
-## License
-
-MIT
+- **Phase 2**: WebSocket support, enhanced rate limiting
+- **Phase 3**: Nova Intelligence Engine
+- **Phase 4**: Bot Builder
+- **Phase 5**: Token Generator
+- **Phase 6**: Backtesting Engine
+- **Phase 7**: Strategy Hub
+- **Phase 8**: Pricing tier enforcement
+- **Phase 9**: Security hardening
+- **Phase 10**: Nova chat endpoint
 
 ## Support
 
-For issues, questions, or feature requests, please contact support@onyxflux.io
+For support, email support@onyxflux.io
+
+## License
+
+Proprietary - All rights reserved

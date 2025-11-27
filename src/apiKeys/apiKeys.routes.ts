@@ -1,83 +1,88 @@
 import { FastifyInstance } from 'fastify';
-import { ApiKeysService } from './apiKeys.service';
-import { authMiddleware, AuthenticatedRequest } from '../middlewares/auth';
+import { z } from 'zod';
+import { authMiddleware } from '../middlewares/auth';
+import { createApiKey, listApiKeys, revokeApiKey, deleteApiKey } from './apiKeys.service';
+import { AppError } from '../utils/errorHandler';
 
-const apiKeysService = new ApiKeysService();
+const createApiKeySchema = z.object({
+  name: z.string().min(1).max(100),
+  type: z.enum(['standard', 'nova']).default('standard'),
+});
 
-export async function apiKeysRoutes(fastify: FastifyInstance): Promise<void> {
-  fastify.post('/api-keys', {
-    preHandler: authMiddleware,
-  }, async (request: AuthenticatedRequest, reply) => {
+const revokeApiKeySchema = z.object({
+  keyId: z.string(),
+});
+
+export async function apiKeyRoutes(fastify: FastifyInstance) {
+  fastify.post('/', { preHandler: authMiddleware }, async (request, reply) => {
     try {
-      const { name } = request.body as { name?: string };
-      const result = await apiKeysService.generateKey(request.user!.userId, name);
+      const { name, type } = createApiKeySchema.parse(request.body);
+      const userId = request.user!.id;
+
+      const apiKey = await createApiKey(userId, name, type);
 
       return reply.send({
-        message: 'API key generated successfully',
-        key: result.key,
-        prefix: result.prefix,
+        success: true,
+        data: apiKey,
+        message: 'API key created successfully. Save this key securely, it will not be shown again.',
       });
     } catch (error) {
-      console.error('Generate key error:', error);
-      return reply.status(500).send({ error: 'Failed to generate API key' });
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw new AppError(400, 'Failed to create API key');
     }
   });
 
-  fastify.get('/api-keys', {
-    preHandler: authMiddleware,
-  }, async (request: AuthenticatedRequest, reply) => {
+  fastify.get('/', { preHandler: authMiddleware }, async (request, reply) => {
     try {
-      const keys = await apiKeysService.listKeys(request.user!.userId);
-      return reply.send({ keys });
-    } catch (error) {
-      console.error('List keys error:', error);
-      return reply.status(500).send({ error: 'Failed to list API keys' });
-    }
-  });
-
-  fastify.delete('/api-keys/:keyId', {
-    preHandler: authMiddleware,
-  }, async (request: AuthenticatedRequest, reply) => {
-    try {
-      const { keyId } = request.params as { keyId: string };
-      await apiKeysService.revokeKey(request.user!.userId, keyId);
-
-      return reply.send({ message: 'API key revoked successfully' });
-    } catch (error) {
-      console.error('Revoke key error:', error);
-      return reply.status(500).send({ error: 'Failed to revoke API key' });
-    }
-  });
-
-  fastify.post('/api-keys/:keyId/rotate', {
-    preHandler: authMiddleware,
-  }, async (request: AuthenticatedRequest, reply) => {
-    try {
-      const { keyId } = request.params as { keyId: string };
-      const result = await apiKeysService.rotateKey(request.user!.userId, keyId);
+      const userId = request.user!.id;
+      const apiKeys = await listApiKeys(userId);
 
       return reply.send({
-        message: 'API key rotated successfully',
-        key: result.key,
-        prefix: result.prefix,
+        success: true,
+        data: apiKeys,
       });
     } catch (error) {
-      console.error('Rotate key error:', error);
-      return reply.status(500).send({ error: 'Failed to rotate API key' });
+      throw new AppError(400, 'Failed to list API keys');
     }
   });
 
-  fastify.get('/api-keys/:keyId/usage', {
-    preHandler: authMiddleware,
-  }, async (request: AuthenticatedRequest, reply) => {
+  fastify.post('/revoke', { preHandler: authMiddleware }, async (request, reply) => {
+    try {
+      const { keyId } = revokeApiKeySchema.parse(request.body);
+      const userId = request.user!.id;
+
+      await revokeApiKey(userId, keyId);
+
+      return reply.send({
+        success: true,
+        message: 'API key revoked successfully',
+      });
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw new AppError(400, 'Failed to revoke API key');
+    }
+  });
+
+  fastify.delete('/:keyId', { preHandler: authMiddleware }, async (request, reply) => {
     try {
       const { keyId } = request.params as { keyId: string };
-      const stats = await apiKeysService.getUsageStats(request.user!.userId, keyId);
+      const userId = request.user!.id;
 
-      return reply.send({ stats });
+      await deleteApiKey(userId, keyId);
+
+      return reply.send({
+        success: true,
+        message: 'API key deleted successfully',
+      });
     } catch (error) {
-      console.error('Get usage error:', error);
-      return reply.status(500).send({ error: 'Failed to get usage stats' });
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw new AppError(400, 'Failed to delete API key');
     }
   });
 }

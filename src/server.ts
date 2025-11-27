@@ -1,171 +1,63 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import websocket from '@fastify/websocket';
-import { config } from './config/env';
-import { Logger } from './utils/logger';
-import prisma from './config/database';
-import redis from './config/redis';
-
+import rateLimit from '@fastify/rate-limit';
+import jwt from '@fastify/jwt';
+import Redis from 'ioredis';
+import env from './config/env';
+import { logger } from './utils/logger';
+import { errorHandler } from './utils/errorHandler';
 import { authRoutes } from './auth/auth.routes';
-import { usersRoutes } from './users/users.routes';
-import { apiKeysRoutes } from './apiKeys/apiKeys.routes';
-import { paymentsRoutes } from './payments/payments.routes';
-import { PaymentsService } from './payments/payments.service';
-import { chainsRoutes } from './chains/chains.routes';
-import { ChainsService } from './chains/chains.service';
-import { novaRoutes } from './nova/nova.routes';
-import { WhalesService } from './nova/whales/whales.service';
-import { LiquidityService } from './nova/liquidity/liquidity.service';
-import { ManipulationService } from './nova/manipulation/manipulation.service';
-import { alertsRoutes } from './alerts/alerts.routes';
-import { webhooksRoutes } from './webhooks/webhooks.routes';
-import { analyticsRoutes } from './analytics/analytics.routes';
-import { AnalyticsService } from './analytics/analytics.service';
-import { walletRoutes } from './wallet/wallet.routes';
-import { liveRoutes } from './nova/live/live.routes';
-import { botsRoutes } from './bots/bots.routes';
-import { notificationsRoutes } from './notifications/notifications.routes';
-import { testRoutes } from './test/test.routes';
-import { dashboardRoutes } from './dashboard/dashboard.routes';
-import { botRoutes } from './bot_builder/bot.controller';
-import { tokenRoutes } from './token_generator/token.routes';
-import { backtestRoutes } from './backtesting/backtest.controller';
-import { strategiesRoutes } from './strategies_hub/strategies.routes';
-import { NovaWebSocketV2 } from './nova_v2/nova.websocket';
-import { BotQueue } from './bot_builder/bot.queue';
-import { novaChatRoutes } from './nova/chat/chat.routes';
-import { secureHeaders, xssProtection, validateInput, antiAbuseFilter } from './middlewares/security';
+import { apiKeyRoutes } from './apiKeys/apiKeys.routes';
+import { billingRoutes } from './billing/billing.routes';
+import { analyticsRoutes } from './users/analytics.routes';
 
-const logger = new Logger('Server');
+const redis = new Redis(env.REDIS_URL);
 
 const fastify = Fastify({
-  logger: config.server.nodeEnv === 'development',
+  logger: false,
 });
 
-const chainsService = new ChainsService();
-const whalesService = new WhalesService(chainsService);
-const liquidityService = new LiquidityService(chainsService);
-const manipulationService = new ManipulationService(chainsService);
-const analyticsService = new AnalyticsService(chainsService);
-const paymentsService = new PaymentsService();
-const novaWebSocketV2 = new NovaWebSocketV2();
-const botQueue = new BotQueue(novaWebSocketV2);
+fastify.setErrorHandler(errorHandler);
 
 async function start() {
   try {
-    fastify.addHook('onRequest', secureHeaders);
-    fastify.addHook('preHandler', xssProtection);
-    fastify.addHook('preHandler', validateInput);
-    fastify.addHook('preHandler', antiAbuseFilter);
-    
     await fastify.register(cors, {
-      origin: config.cors.origin,
+      origin: env.FRONTEND_URL,
       credentials: true,
     });
 
-    await fastify.register(websocket);
-
-    fastify.get('/', async (_request, reply) => {
-      return reply.send({
-        name: 'OnyxFlux API',
-        version: '1.0.0',
-        status: 'operational',
-        documentation: '/docs',
-      });
+    await fastify.register(jwt, {
+      secret: env.JWT_SECRET,
     });
 
-    await fastify.register(authRoutes);
-    await fastify.register(usersRoutes);
-    await fastify.register(apiKeysRoutes);
-    await fastify.register(paymentsRoutes);
-    await fastify.register(chainsRoutes);
-    await fastify.register(async (instance) => {
-      await novaRoutes(instance, whalesService, liquidityService, manipulationService);
-    });
-    await fastify.register(alertsRoutes);
-    await fastify.register(webhooksRoutes);
-    await fastify.register(async (instance) => {
-      await analyticsRoutes(instance, analyticsService);
-    });
-    
-    await fastify.register(walletRoutes);
-    await fastify.register(liveRoutes);
-    await fastify.register(botsRoutes);
-    await fastify.register(notificationsRoutes);
-    await fastify.register(testRoutes);
-    await fastify.register(dashboardRoutes);
-    await fastify.register(botRoutes);
-    await fastify.register(tokenRoutes);
-    await fastify.register(backtestRoutes);
-    await fastify.register(strategiesRoutes);
-    await fastify.register(novaChatRoutes);
-
-    fastify.get('/alerts/stream', { websocket: true }, (connection: any, _req: any) => {
-      logger.info('WebSocket client connected');
-
-      connection.socket.on('message', (message: any) => {
-        logger.debug('WebSocket message received:', message.toString());
-      });
-
-      connection.socket.on('close', () => {
-        logger.info('WebSocket client disconnected');
-      });
-
-      setInterval(() => {
-        if (connection.socket.readyState === 1) {
-          connection.socket.send(JSON.stringify({
-            type: 'ping',
-            timestamp: Date.now(),
-          }));
-        }
-      }, 30000);
+    await fastify.register(rateLimit, {
+      max: 100,
+      timeWindow: '1 minute',
+      redis,
+      keyGenerator: (request) => {
+        return request.headers['x-api-key'] as string || request.ip;
+      },
     });
 
-    if (config.nova.enabled) {
-      logger.info('Starting Nova Intelligence services...');
-      whalesService.startScanning();
-      liquidityService.startScanning();
-      manipulationService.startScanning();
-    }
-
-    paymentsService.startPaymentMonitoring();
-    
-    logger.info('Starting Nova V2 WebSocket server...');
-    novaWebSocketV2.initialize(fastify.server);
-    
-    logger.info('Starting Bot Queue...');
-    botQueue.start();
-
-    setInterval(async () => {
-      await analyticsService.recordSystemMetrics();
-    }, 60000);
-
-    await fastify.listen({
-      port: config.server.port,
-      host: config.server.host,
+    fastify.get('/health', async () => {
+      return { status: 'ok', timestamp: new Date().toISOString() };
     });
 
-    logger.info(`Server listening on ${config.server.host}:${config.server.port}`);
-    logger.info(`Environment: ${config.server.nodeEnv}`);
+    await fastify.register(authRoutes, { prefix: '/auth' });
+    await fastify.register(apiKeyRoutes, { prefix: '/api-keys' });
+    await fastify.register(billingRoutes, { prefix: '/billing' });
+    await fastify.register(analyticsRoutes, { prefix: '/analytics' });
+
+    const port = parseInt(env.PORT);
+    await fastify.listen({ port, host: '0.0.0.0' });
+
+    logger.info(`🚀 OnyxFlux Backend running on port ${port}`);
+    logger.info(`📊 Environment: ${env.NODE_ENV}`);
+    logger.info(`🔗 Frontend URL: ${env.FRONTEND_URL}`);
   } catch (error) {
-    logger.error('Failed to start server:', error);
+    logger.error('Failed to start server', error);
     process.exit(1);
   }
 }
-
-process.on('SIGTERM', async () => {
-  logger.info('SIGTERM received, shutting down gracefully...');
-  
-  whalesService.stopScanning();
-  liquidityService.stopScanning();
-  manipulationService.stopScanning();
-  botQueue.stop();
-  
-  await fastify.close();
-  await prisma.$disconnect();
-  await redis.quit();
-  
-  process.exit(0);
-});
 
 start();

@@ -1,25 +1,32 @@
-export class Logger {
-  private context: string;
+type LogLevel = 'info' | 'warn' | 'error' | 'debug';
 
-  constructor(context: string) {
-    this.context = context;
-  }
-
-  info(message: string, ...args: unknown[]): void {
-    console.log(`[${this.context}] INFO:`, message, ...args);
-  }
-
-  error(message: string, ...args: unknown[]): void {
-    console.error(`[${this.context}] ERROR:`, message, ...args);
-  }
-
-  warn(message: string, ...args: unknown[]): void {
-    console.warn(`[${this.context}] WARN:`, message, ...args);
-  }
-
-  debug(message: string, ...args: unknown[]): void {
-    if (process.env.NODE_ENV === 'development') {
-      console.debug(`[${this.context}] DEBUG:`, message, ...args);
+class Logger {
+  private log(level: LogLevel, message: string, meta?: any) {
+    const timestamp = new Date().toISOString();
+    const logMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
+    
+    if (meta) {
+      console[level](logMessage, meta);
+    } else {
+      console[level](logMessage);
     }
   }
+
+  info(message: string, meta?: any) {
+    this.log('info', message, meta);
+  }
+
+  warn(message: string, meta?: any) {
+    this.log('warn', message, meta);
+  }
+
+  error(message: string, meta?: any) {
+    this.log('error', message, meta);
+  }
+
+  debug(message: string, meta?: any) {
+    this.log('debug', message, meta);
+  }
 }
+
+export const logger = new Logger();

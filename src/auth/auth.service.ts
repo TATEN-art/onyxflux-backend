@@ -1,97 +1,101 @@
-import prisma from '../config/database';
-import { generateOTP } from '../utils/crypto';
-import { signToken } from '../utils/jwt';
-import { sendEmail, generateOTPEmail } from '../utils/email';
-import { Logger } from '../utils/logger';
+import { OAuth2Client } from 'google-auth-library';
+import { PrismaClient } from '@prisma/client';
+import { nanoid } from 'nanoid';
+import env from '../config/env';
+import { AppError } from '../utils/errorHandler';
+import { sendWelcomeEmail } from '../utils/email';
 
-const logger = new Logger('AuthService');
+const prisma = new PrismaClient();
+const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
-export class AuthService {
-  async sendVerificationCode(email: string): Promise<void> {
-    const code = generateOTP();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+export async function verifyGoogleToken(idToken: string) {
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: env.GOOGLE_CLIENT_ID,
+    });
 
-    await prisma.emailVerification.create({
+    const payload = ticket.getPayload();
+
+    if (!payload) {
+      throw new AppError(401, 'Invalid Google token');
+    }
+
+    if (!payload.email_verified) {
+      throw new AppError(401, 'Email not verified');
+    }
+
+    return {
+      googleId: payload.sub,
+      email: payload.email!,
+      name: payload.name || payload.email!.split('@')[0],
+    };
+  } catch (error) {
+    throw new AppError(401, 'Failed to verify Google token');
+  }
+}
+
+export async function createOrUpdateUser(googleData: {
+  googleId: string;
+  email: string;
+  name: string;
+}) {
+  let user = await prisma.user.findUnique({
+    where: { googleId: googleData.googleId },
+  });
+
+  const isNewUser = !user;
+
+  if (!user) {
+    user = await prisma.user.findUnique({
+      where: { email: googleData.email },
+    });
+  }
+
+  if (user) {
+    user = await prisma.user.update({
+      where: { id: user.id },
       data: {
-        email,
-        code,
-        expiresAt,
+        googleId: googleData.googleId,
+        name: googleData.name,
+        emailVerified: true,
+      },
+    });
+  } else {
+    user = await prisma.user.create({
+      data: {
+        googleId: googleData.googleId,
+        email: googleData.email,
+        name: googleData.name,
+        emailVerified: true,
+        plan: 'free',
       },
     });
 
-    await sendEmail({
-      to: email,
-      subject: 'Your OnyxFlux Verification Code',
-      html: generateOTPEmail(code),
-    });
-
-    logger.info(`Verification code sent to ${email}`);
+    await sendWelcomeEmail(user.email, user.name || 'User');
   }
 
-  async verifyCode(email: string, code: string): Promise<string> {
-    const verification = await prisma.emailVerification.findFirst({
-      where: {
-        email,
-        code,
-        verified: false,
-        expiresAt: { gte: new Date() },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+  return { user, isNewUser };
+}
 
-    if (!verification) {
-      throw new Error('Invalid or expired verification code');
-    }
+export async function createSession(userId: string) {
+  const token = nanoid(64);
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 30);
 
-    await prisma.emailVerification.update({
-      where: { id: verification.id },
-      data: { verified: true },
-    });
+  const session = await prisma.session.create({
+    data: {
+      userId,
+      token,
+      expiresAt,
+    },
+  });
 
-    let user = await prisma.user.findUnique({
-      where: { email },
-    });
+  return session;
+}
 
-    if (!user) {
-      const trialStart = new Date();
-      const trialEnd = new Date(trialStart.getTime() + 5 * 24 * 60 * 60 * 1000);
-
-      user = await prisma.user.create({
-        data: {
-          email,
-          plan: 'FREE',
-          trialStart,
-          trialEnd,
-          novaCreditsLeft: 0,
-        },
-      });
-
-      logger.info(`New user created: ${email}`);
-    }
-
-    const token = signToken({
-      userId: user.id,
-      email: user.email,
-      plan: user.plan,
-    });
-
-    logger.info(`User authenticated: ${email}`);
-    return token;
-  }
-
-  async checkTrialExpiration(userId: string): Promise<boolean> {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      return false;
-    }
-
-    if (user.plan === 'FREE' && user.trialEnd < new Date()) {
-      return true;
-    }
-
-    return false;
-  }
+export async function deleteSession(token: string) {
+  await prisma.session.delete({
+    where: { token },
+  });
 }
