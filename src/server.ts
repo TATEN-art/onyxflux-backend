@@ -15,6 +15,7 @@ import { wsRoutes } from './ws/ws.routes';
 import { novaRoutes } from './nova/nova.routes';
 import { botRoutes } from './bots/bot.routes';
 import { botRuntime } from './bots/bot.runtime';
+import { tokenRoutes } from './tokenGenerator/token.routes';
 import { AuthenticatedUser } from './middlewares/auth';
 
 declare module '@fastify/jwt' {
@@ -64,6 +65,7 @@ async function start() {
     await fastify.register(wsRoutes, { prefix: '/ws' });
     await fastify.register(novaRoutes);
     await fastify.register(botRoutes);
+    await fastify.register(tokenRoutes);
 
     await botRuntime.start();
 
@@ -74,6 +76,7 @@ async function start() {
     logger.info(`📊 Environment: ${env.NODE_ENV}`);
     logger.info(`🔗 Frontend URL: ${env.FRONTEND_URL}`);
     logger.info(`🤖 Bot Runtime Engine: Active`);
+    logger.info(`🪙 Token Generator: Active (ETH, Base, BNB, Solana)`);
   } catch (error) {
     logger.error('Failed to start server', error);
     process.exit(1);
