@@ -4,6 +4,14 @@ import { AppError } from '../utils/errorHandler';
 
 const prisma = new PrismaClient();
 
+export interface AuthenticatedUser {
+  id: string;
+  email: string;
+  name: string | null;
+  plan: string;
+  planExpiry: Date | null;
+}
+
 export async function authMiddleware(
   request: FastifyRequest,
   reply: FastifyReply
@@ -37,17 +45,5 @@ export async function authMiddleware(
       throw error;
     }
     throw new AppError(401, 'Authentication failed');
-  }
-}
-
-declare module 'fastify' {
-  interface FastifyRequest {
-    user?: {
-      id: string;
-      email: string;
-      name: string | null;
-      plan: string;
-      planExpiry: Date | null;
-    };
   }
 }

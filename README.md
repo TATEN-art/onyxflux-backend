@@ -1,15 +1,23 @@
-# OnyxFlux Backend - Phase 1 Foundation
+# OnyxFlux Backend - Phase 1 & 2
 
-Multi-chain Web3 API Platform Backend - Phase 1 Foundation
+Multi-chain Web3 API Platform Backend - Foundation + WebSocket Support
 
 ## Features
 
+### Phase 1 - Foundation
 - **Google OAuth Authentication**: Secure authentication using Google ID tokens (NextAuth-compatible)
 - **API Key Management**: Generate, manage, and revoke multiple API keys per user
 - **Crypto Wallet Payments**: Accept payments via WalletConnect to admin wallet with on-chain verification
 - **Usage Analytics**: Track requests, latency, and API usage
 - **Rate Limiting**: Redis-backed rate limiting per API key
 - **Request Logging**: Comprehensive logging of all API requests
+
+### Phase 2 - WebSocket Support
+- **Real-Time WebSocket Streaming**: Production-grade WebSocket server for Nova V2 events
+- **Stream Manager**: Client tracking, subscription management, and rate limiting
+- **Plan-Based Access**: WebSocket access restricted to Pro and Enterprise plans
+- **Auto-Reconnect & Heartbeat**: Built-in ping/pong heartbeats every 30 seconds
+- **Real-Time Events**: Price feeds, liquidity shifts, whale movements, volatility spikes, AI predictions, and more
 
 ## Tech Stack
 
@@ -130,9 +138,126 @@ npm start
 
 - `GET /analytics` - Get usage analytics and request logs
 
+### WebSocket (Phase 2)
+
+- `GET /ws/nova/v2` - WebSocket endpoint for real-time Nova V2 events (Pro/Enterprise only)
+- `GET /ws/stats` - WebSocket statistics (client count, subscription count)
+
 ### Health
 
 - `GET /health` - Health check endpoint
+
+## WebSocket Usage
+
+### Connection
+
+Connect to the WebSocket endpoint with authentication:
+
+```bash
+# Using wscat (install with: npm install -g wscat)
+wscat -c "ws://localhost:3000/ws/nova/v2?token=YOUR_JWT_TOKEN"
+
+# Or for production
+wscat -c "wss://api.onyxflux.io/ws/nova/v2?token=YOUR_JWT_TOKEN"
+```
+
+Alternatively, include the token in the Authorization header:
+
+```bash
+wscat -c "ws://localhost:3000/ws/nova/v2" -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+### Subscription Format
+
+Subscribe to real-time events for specific symbols and chains:
+
+```json
+{
+  "action": "subscribe",
+  "symbol": "ETH",
+  "chain": "ethereum"
+}
+```
+
+Unsubscribe from events:
+
+```json
+{
+  "action": "unsubscribe",
+  "symbol": "ETH",
+  "chain": "ethereum"
+}
+```
+
+### Real-Time Event Types
+
+The WebSocket streams the following event types:
+
+1. **Price Feed Updates** (`price_update`)
+   - Real-time price changes
+   - 24h volume and price change percentage
+
+2. **Liquidity Shifts** (`liquidity_shift`)
+   - Liquidity pool changes
+   - Direction (increase/decrease) and severity
+
+3. **Whale Movements** (`whale_movement`)
+   - Large wallet transactions
+   - Buy/sell direction and impact level
+
+4. **Volatility Spikes** (`volatility_spike`)
+   - Sudden price volatility
+   - Volatility index and severity
+
+5. **Trend Direction** (`trend_direction`)
+   - Market trend analysis
+   - Bullish/bearish/neutral with strength
+
+6. **Risk Score Updates** (`risk_score`)
+   - Comprehensive risk assessment
+   - Volatility, liquidity, manipulation, sentiment factors
+
+7. **AI Predictions** (`ai_prediction`)
+   - Nova AI price predictions
+   - Confidence level and target price
+
+8. **Market Sentiment** (`market_sentiment`)
+   - Aggregated market sentiment
+   - Sentiment score from multiple sources
+
+9. **Breakout Alerts** (`breakout_alert`)
+   - AI-detected breakout patterns
+   - Resistance/support level breaks
+
+### Plan Limits
+
+| Plan       | Max Connections | Max Subscriptions | Messages/Minute |
+|------------|----------------|-------------------|-----------------|
+| Free       | 0              | 0                 | 0               |
+| Pro        | 3              | 10                | 100             |
+| Enterprise | 10             | 50                | 1000            |
+
+### Example Session
+
+```bash
+# Connect
+wscat -c "ws://localhost:3000/ws/nova/v2?token=YOUR_JWT_TOKEN"
+
+# You'll receive a welcome message
+< {"type":"success","data":{"message":"Connected to OnyxFlux Nova V2 WebSocket. Plan: pro. Send subscription messages to start receiving events."},"timestamp":"2025-11-27T12:00:00.000Z"}
+
+# Subscribe to Ethereum
+> {"action":"subscribe","symbol":"ETH","chain":"ethereum"}
+
+# Confirmation
+< {"type":"success","data":{"message":"Successfully subscribed to ethereum:ETH"},"timestamp":"2025-11-27T12:00:01.000Z"}
+
+# Receive real-time events
+< {"type":"event","data":{"type":"price_update","symbol":"ETH","chain":"ethereum","price":3500.50,"change24h":2.5,"volume24h":1500000000,"timestamp":"2025-11-27T12:00:02.000Z"},"timestamp":"2025-11-27T12:00:02.000Z"}
+
+# Heartbeat (every 30 seconds)
+< {"type":"heartbeat","timestamp":"2025-11-27T12:00:30.000Z"}
+```
 
 ## Folder Structure
 
@@ -142,7 +267,13 @@ src/
 ├── users/             # User management and analytics
 ├── billing/           # Payment verification and plan management
 ├── apiKeys/           # API key management
+├── ws/                # WebSocket infrastructure (Phase 2)
+│   ├── types.ts       # WebSocket event type definitions
+│   ├── streamManager.ts # Client and subscription management
+│   └── ws.routes.ts   # WebSocket routes
 ├── config/            # Environment configuration
+│   ├── env.ts         # Environment variable loader
+│   └── database.ts    # Prisma client instance
 ├── utils/             # Utility functions (logger, crypto, email, error handling)
 ├── middlewares/       # Authentication and API key middlewares
 ├── nova/              # (Phase 3+) Nova Intelligence Engine
@@ -158,17 +289,16 @@ prisma/
 
 ## Next Steps
 
-Phase 1 provides the foundation. Future phases will add:
+Phases 1 & 2 provide the foundation and real-time streaming. Future phases will add:
 
-- **Phase 2**: WebSocket support, enhanced rate limiting
-- **Phase 3**: Nova Intelligence Engine
-- **Phase 4**: Bot Builder
-- **Phase 5**: Token Generator
-- **Phase 6**: Backtesting Engine
-- **Phase 7**: Strategy Hub
-- **Phase 8**: Pricing tier enforcement
-- **Phase 9**: Security hardening
-- **Phase 10**: Nova chat endpoint
+- **Phase 3**: Nova Intelligence Engine (AI predictions, whale detection, liquidity analysis)
+- **Phase 4**: Bot Builder (automated trading strategies)
+- **Phase 5**: Token Generator (ERC-20, ERC-721 creation)
+- **Phase 6**: Backtesting Engine (strategy simulation)
+- **Phase 7**: Strategy Hub (community strategies)
+- **Phase 8**: Pricing tier enforcement (enhanced limits)
+- **Phase 9**: Security hardening (encryption, audit logs)
+- **Phase 10**: Nova chat endpoint (AI assistant)
 
 ## Support
 

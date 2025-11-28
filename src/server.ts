@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import jwt from '@fastify/jwt';
+import websocket from '@fastify/websocket';
 import Redis from 'ioredis';
 import env from './config/env';
 import { logger } from './utils/logger';
@@ -10,6 +11,14 @@ import { authRoutes } from './auth/auth.routes';
 import { apiKeyRoutes } from './apiKeys/apiKeys.routes';
 import { billingRoutes } from './billing/billing.routes';
 import { analyticsRoutes } from './users/analytics.routes';
+import { wsRoutes } from './ws/ws.routes';
+import { AuthenticatedUser } from './middlewares/auth';
+
+declare module '@fastify/jwt' {
+  interface FastifyJWT {
+    user: AuthenticatedUser;
+  }
+}
 
 const redis = new Redis(env.REDIS_URL);
 
@@ -39,6 +48,8 @@ async function start() {
       },
     });
 
+    await fastify.register(websocket);
+
     fastify.get('/health', async () => {
       return { status: 'ok', timestamp: new Date().toISOString() };
     });
@@ -47,6 +58,7 @@ async function start() {
     await fastify.register(apiKeyRoutes, { prefix: '/api-keys' });
     await fastify.register(billingRoutes, { prefix: '/billing' });
     await fastify.register(analyticsRoutes, { prefix: '/analytics' });
+    await fastify.register(wsRoutes, { prefix: '/ws' });
 
     const port = parseInt(env.PORT);
     await fastify.listen({ port, host: '0.0.0.0' });
