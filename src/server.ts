@@ -13,6 +13,8 @@ import { billingRoutes } from './billing/billing.routes';
 import { analyticsRoutes } from './users/analytics.routes';
 import { wsRoutes } from './ws/ws.routes';
 import { novaRoutes } from './nova/nova.routes';
+import { botRoutes } from './bots/bot.routes';
+import { botRuntime } from './bots/bot.runtime';
 import { AuthenticatedUser } from './middlewares/auth';
 
 declare module '@fastify/jwt' {
@@ -61,6 +63,9 @@ async function start() {
     await fastify.register(analyticsRoutes, { prefix: '/analytics' });
     await fastify.register(wsRoutes, { prefix: '/ws' });
     await fastify.register(novaRoutes);
+    await fastify.register(botRoutes);
+
+    await botRuntime.start();
 
     const port = parseInt(env.PORT);
     await fastify.listen({ port, host: '0.0.0.0' });
@@ -68,6 +73,7 @@ async function start() {
     logger.info(`🚀 OnyxFlux Backend running on port ${port}`);
     logger.info(`📊 Environment: ${env.NODE_ENV}`);
     logger.info(`🔗 Frontend URL: ${env.FRONTEND_URL}`);
+    logger.info(`🤖 Bot Runtime Engine: Active`);
   } catch (error) {
     logger.error('Failed to start server', error);
     process.exit(1);

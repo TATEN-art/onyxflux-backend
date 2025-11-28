@@ -22,6 +22,7 @@ model User {
   apiKeys       ApiKey[]
   payments      Payment[]
   requestLogs   RequestLog[]
+  bots          Bot[]
 }
 
 model Session {
@@ -100,5 +101,61 @@ model RequestLog {
 
   @@index([userId])
   @@index([apiKeyId])
+  @@index([createdAt])
+}
+
+model Bot {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  chain       String
+  tokenAddress String
+  tokenSymbol String?
+  strategy    String
+  riskLevel   String
+  isActive    Boolean  @default(true)
+  config      Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  signals     BotSignal[]
+  auditLogs   BotAuditLog[]
+
+  @@index([userId])
+  @@index([chain])
+  @@index([isActive])
+}
+
+model BotSignal {
+  id              String   @id @default(cuid())
+  botId           String
+  signalType      String
+  confidence      Float
+  entryPrice      Float?
+  exitPrice       Float?
+  stopLoss        Float?
+  takeProfit      Float?
+  capitalAllocation Float?
+  reasoning       String?
+  novaData        Json
+  createdAt       DateTime @default(now())
+
+  bot Bot @relation(fields: [botId], references: [id], onDelete: Cascade)
+
+  @@index([botId])
+  @@index([createdAt])
+}
+
+model BotAuditLog {
+  id        String   @id @default(cuid())
+  botId     String
+  action    String
+  details   Json?
+  createdAt DateTime @default(now())
+
+  bot Bot @relation(fields: [botId], references: [id], onDelete: Cascade)
+
+  @@index([botId])
   @@index([createdAt])
 }
