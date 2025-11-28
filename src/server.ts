@@ -12,6 +12,7 @@ import { apiKeyRoutes } from './apiKeys/apiKeys.routes';
 import { billingRoutes } from './billing/billing.routes';
 import { analyticsRoutes } from './users/analytics.routes';
 import { wsRoutes } from './ws/ws.routes';
+import { novaRoutes } from './nova/nova.routes';
 import { AuthenticatedUser } from './middlewares/auth';
 
 declare module '@fastify/jwt' {
@@ -59,6 +60,7 @@ async function start() {
     await fastify.register(billingRoutes, { prefix: '/billing' });
     await fastify.register(analyticsRoutes, { prefix: '/analytics' });
     await fastify.register(wsRoutes, { prefix: '/ws' });
+    await fastify.register(novaRoutes);
 
     const port = parseInt(env.PORT);
     await fastify.listen({ port, host: '0.0.0.0' });
